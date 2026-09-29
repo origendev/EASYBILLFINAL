@@ -3,89 +3,489 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#f2f5f1">
-  <meta name="description" content="Download EasyBill for Windows and manage your business from your desktop.">
+
+  <meta
+    name="theme-color"
+    content="#f2f5f1"
+  >
+
+  <meta
+    name="description"
+    content="Download EasyBill for Windows and manage your business from your desktop."
+  >
+
   <title>EasyBill for Windows</title>
+
   <link rel="stylesheet" href="styles.css?v=1">
 </head>
+
 <body>
+
   <header class="site-header">
-    <a class="brand" href="./" aria-label="EasyBill home">
+
+    <a
+      class="brand"
+      href="./"
+      aria-label="EasyBill home"
+    >
       <span class="brand-mark">E</span>
       <span>EasyBill</span>
     </a>
-    <a class="header-link" href="about.html">About ORIGEN <span aria-hidden="true">↗</span></a>
+
+    <a
+      class="header-link"
+      href="about.html"
+    >
+      About ORIGEN
+      <span aria-hidden="true">↗</span>
+    </a>
+
   </header>
 
+
   <main>
-    <section class="hero" aria-labelledby="hero-title">
+
+    <section
+      class="hero"
+      aria-labelledby="hero-title"
+    >
+
       <div class="hero-copy">
-        <p class="eyebrow"><span></span> DESKTOP EDITION · WINDOWS</p>
-        <h1 id="hero-title">EasyBill,<br>ready for your desk.</h1>
-        <p class="hero-summary">Your billing workspace, installed on your Windows laptop. Sign in to access your business data.</p>
+
+        <p class="eyebrow">
+          <span></span>
+          DESKTOP EDITION · WINDOWS
+        </p>
+
+        <h1 id="hero-title">
+          EasyBill,<br>
+          ready for your desk.
+        </h1>
+
+        <p class="hero-summary">
+          Your billing workspace, installed on your Windows laptop.
+          Sign in to access your business data.
+        </p>
+
+
+        <!-- DOWNLOAD SECTION -->
+
         <div class="download-actions">
-          <a class="download-button" id="download-button" href="https://github.com/origendev/EASYBILLFINAL/releases/download/v1.0.0/EasyBill-Setup-1.0.0.exe" download aria-describedby="download-status">
-            <span class="download-icon" aria-hidden="true">↓</span>
-            <span><strong>Download for Windows</strong><small>64-bit installer · EasyBill 1.0.0</small></span>
+
+          <a
+            class="download-button"
+            id="download-button"
+            href="https://github.com/origendev/EASYBILLFINAL/releases/download/v1.0.1/EasyBill-Setup-1.0.1.exe"
+            aria-describedby="download-status"
+          >
+
+            <span
+              class="download-icon"
+              aria-hidden="true"
+            >
+              ↓
+            </span>
+
+            <span>
+              <strong>Download for Windows</strong>
+
+              <small>
+                64-bit installer · EasyBill 1.0.1
+              </small>
+            </span>
+
           </a>
-          <p class="download-status" id="download-status" role="status">Checking installer availability…</p>
+
+
+          <p
+            class="download-status"
+            id="download-status"
+            role="status"
+          >
+            Installer ready to download.
+          </p>
+
         </div>
-        <p class="requirements">Windows 10 or 11 · 64-bit · Internet required for cloud sync</p>
+
+
+        <p class="requirements">
+          Windows 10 or 11 · 64-bit · Internet required for cloud sync
+        </p>
+
       </div>
 
-      <div class="workspace-preview" aria-label="Preview of the EasyBill desktop workspace">
+
+      <!-- WORKSPACE PREVIEW -->
+
+      <div
+        class="workspace-preview"
+        aria-label="Preview of the EasyBill desktop workspace"
+      >
+
         <div class="window-chrome">
-          <div class="window-brand"><span>E</span> EasyBill</div>
-          <div class="window-controls" aria-hidden="true"><i></i><i></i><i></i></div>
-        </div>
-        <div class="workspace-body">
-          <aside class="preview-sidebar">
-            <span class="preview-label">WORKSPACE</span>
-            <span class="preview-nav active"><i class="nav-glyph grid-glyph"></i> Overview</span>
-            <span class="preview-nav"><i class="nav-glyph scan-glyph"></i> Point of sale</span>
-            <span class="preview-nav"><i class="nav-glyph receipt-glyph"></i> Invoices</span>
-            <span class="preview-nav"><i class="nav-glyph people-glyph"></i> Customers</span>
-            <span class="preview-nav"><i class="nav-glyph box-glyph"></i> Products</span>
-            <div class="sidebar-bottom"><span class="avatar">E</span><span>Business account<small>Cloud connected</small></span></div>
-          </aside>
-          <div class="preview-main">
-            <div class="preview-heading"><div><small>SAMPLE WORKSPACE · PREVIEW</small><h2>Good morning</h2></div><span class="date-chip">Today</span></div>
-            <div class="metric-row">
-              <div class="metric"><small>SALES THIS MONTH</small><strong>₹ 84,250</strong><span class="metric-up">↑ 12.8%</span></div>
-              <div class="metric"><small>INVOICES</small><strong>128</strong><span class="metric-note">This month</span></div>
-              <div class="metric"><small>CUSTOMERS</small><strong>64</strong><span class="metric-note">In your account</span></div>
-            </div>
-            <div class="activity-panel">
-              <div class="activity-heading"><strong>Recent invoices</strong><span>View all</span></div>
-              <div class="invoice-row invoice-head"><span>INVOICE</span><span>CUSTOMER</span><span>AMOUNT</span><span>STATUS</span></div>
-              <div class="invoice-row"><b>EB-0128</b><span>Northstar Goods</span><strong>₹ 4,850</strong><em class="paid">Paid</em></div>
-              <div class="invoice-row"><b>EB-0127</b><span>Meera Stores</span><strong>₹ 2,300</strong><em class="due">Due</em></div>
-              <div class="invoice-row"><b>EB-0126</b><span>Corner Market</span><strong>₹ 7,120</strong><em class="paid">Paid</em></div>
-            </div>
-            <div class="preview-footer"><span><i></i> Supabase cloud sync</span><span>EasyBill desktop</span></div>
+
+          <div class="window-brand">
+            <span>E</span>
+            EasyBill
           </div>
+
+          <div
+            class="window-controls"
+            aria-hidden="true"
+          >
+            <i></i>
+            <i></i>
+            <i></i>
+          </div>
+
         </div>
+
+
+        <div class="workspace-body">
+
+          <aside class="preview-sidebar">
+
+            <span class="preview-label">
+              WORKSPACE
+            </span>
+
+            <span class="preview-nav active">
+              <i class="nav-glyph grid-glyph"></i>
+              Overview
+            </span>
+
+            <span class="preview-nav">
+              <i class="nav-glyph scan-glyph"></i>
+              Point of sale
+            </span>
+
+            <span class="preview-nav">
+              <i class="nav-glyph receipt-glyph"></i>
+              Invoices
+            </span>
+
+            <span class="preview-nav">
+              <i class="nav-glyph people-glyph"></i>
+              Customers
+            </span>
+
+            <span class="preview-nav">
+              <i class="nav-glyph box-glyph"></i>
+              Products
+            </span>
+
+
+            <div class="sidebar-bottom">
+
+              <span class="avatar">
+                E
+              </span>
+
+              <span>
+                Business account
+
+                <small>
+                  Cloud connected
+                </small>
+              </span>
+
+            </div>
+
+          </aside>
+
+
+          <div class="preview-main">
+
+            <div class="preview-heading">
+
+              <div>
+
+                <small>
+                  SAMPLE WORKSPACE · PREVIEW
+                </small>
+
+                <h2>
+                  Good morning
+                </h2>
+
+              </div>
+
+              <span class="date-chip">
+                Today
+              </span>
+
+            </div>
+
+
+            <div class="metric-row">
+
+              <div class="metric">
+
+                <small>
+                  SALES THIS MONTH
+                </small>
+
+                <strong>
+                  ₹ 84,250
+                </strong>
+
+                <span class="metric-up">
+                  ↑ 12.8%
+                </span>
+
+              </div>
+
+
+              <div class="metric">
+
+                <small>
+                  INVOICES
+                </small>
+
+                <strong>
+                  128
+                </strong>
+
+                <span class="metric-note">
+                  This month
+                </span>
+
+              </div>
+
+
+              <div class="metric">
+
+                <small>
+                  CUSTOMERS
+                </small>
+
+                <strong>
+                  64
+                </strong>
+
+                <span class="metric-note">
+                  In your account
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <div class="activity-panel">
+
+              <div class="activity-heading">
+
+                <strong>
+                  Recent invoices
+                </strong>
+
+                <span>
+                  View all
+                </span>
+
+              </div>
+
+
+              <div class="invoice-row invoice-head">
+
+                <span>INVOICE</span>
+                <span>CUSTOMER</span>
+                <span>AMOUNT</span>
+                <span>STATUS</span>
+
+              </div>
+
+
+              <div class="invoice-row">
+
+                <b>
+                  EB-0128
+                </b>
+
+                <span>
+                  Northstar Goods
+                </span>
+
+                <strong>
+                  ₹ 4,850
+                </strong>
+
+                <em class="paid">
+                  Paid
+                </em>
+
+              </div>
+
+
+              <div class="invoice-row">
+
+                <b>
+                  EB-0127
+                </b>
+
+                <span>
+                  Meera Stores
+                </span>
+
+                <strong>
+                  ₹ 2,300
+                </strong>
+
+                <em class="due">
+                  Due
+                </em>
+
+              </div>
+
+
+              <div class="invoice-row">
+
+                <b>
+                  EB-0126
+                </b>
+
+                <span>
+                  Corner Market
+                </span>
+
+                <strong>
+                  ₹ 7,120
+                </strong>
+
+                <em class="paid">
+                  Paid
+                </em>
+
+              </div>
+
+            </div>
+
+
+            <div class="preview-footer">
+
+              <span>
+                <i></i>
+                Supabase cloud sync
+              </span>
+
+              <span>
+                EasyBill desktop
+              </span>
+
+            </div>
+
+          </div>
+
+        </div>
+
       </div>
+
     </section>
 
-    <section class="download-details" aria-label="Download details">
-      <div><span class="detail-index">01</span><p><strong>One installer</strong><br>Download and install EasyBill on your Windows laptop.</p></div>
-      <div><span class="detail-index">02</span><p><strong>Your account</strong><br>Sign in to reach your business workspace.</p></div>
-      <div><span class="detail-index">03</span><p><strong>Cloud-backed</strong><br>Business records sync with your Supabase account when online.</p></div>
+
+    <!-- DOWNLOAD DETAILS -->
+
+    <section
+      class="download-details"
+      aria-label="Download details"
+    >
+
+      <div>
+
+        <span class="detail-index">
+          01
+        </span>
+
+        <p>
+          <strong>
+            One installer
+          </strong>
+          <br>
+          Download and install EasyBill on your Windows laptop.
+        </p>
+
+      </div>
+
+
+      <div>
+
+        <span class="detail-index">
+          02
+        </span>
+
+        <p>
+          <strong>
+            Your account
+          </strong>
+          <br>
+          Sign in to reach your business workspace.
+        </p>
+
+      </div>
+
+
+      <div>
+
+        <span class="detail-index">
+          03
+        </span>
+
+        <p>
+          <strong>
+            Cloud-backed
+          </strong>
+          <br>
+          Business records sync with your Supabase account when online.
+        </p>
+
+      </div>
+
     </section>
+
   </main>
 
-  <footer class="site-footer"><span>© 2026 ORIGEN · EasyBill is an ORIGEN product</span><a href="https://www.origentech.co.in/" target="_blank" rel="noopener noreferrer">origentech.co.in ↗</a></footer>
+
+  <!-- FOOTER -->
+
+  <footer class="site-footer">
+
+    <span>
+      © 2026 ORIGEN · EasyBill is an ORIGEN product
+    </span>
+
+    <a
+      href="https://www.origentech.co.in/"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      origentech.co.in ↗
+    </a>
+
+  </footer>
+
+
+  <!-- DOWNLOAD STATUS SCRIPT -->
 
   <script>
-    const button = document.getElementById('download-button');
-    const status = document.getElementById('download-status');
+
+    const button =
+      document.getElementById('download-button');
+
+    const status =
+      document.getElementById('download-status');
+
 
     // GitHub Release contains the Windows installer
+
     button.classList.remove('is-pending');
+
     button.removeAttribute('aria-disabled');
 
-    status.textContent = 'Installer ready to download.';
-  </script>>
+    status.textContent =
+      'Installer ready to download.';
+
+  </script>
+
 </body>
 </html>
