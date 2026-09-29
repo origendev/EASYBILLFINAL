@@ -80,17 +80,12 @@
   <script>
     const button = document.getElementById('download-button');
     const status = document.getElementById('download-status');
-    fetch(button.href, { method: 'HEAD' }).then(response => {
-      if (!response.ok) throw new Error('Installer not found');
-      button.classList.remove('is-pending');
-      status.textContent = 'Installer ready to download.';
-    }).catch(() => {
-      button.classList.add('is-pending');
-      button.setAttribute('aria-disabled', 'true');
-      button.removeAttribute('download');
-      button.addEventListener('click', event => event.preventDefault());
-      status.textContent = 'The Windows installer will be available here after the first release build.';
-    });
-  </script>
+
+    // GitHub Release contains the Windows installer
+    button.classList.remove('is-pending');
+    button.removeAttribute('aria-disabled');
+
+    status.textContent = 'Installer ready to download.';
+  </script>>
 </body>
 </html>
