@@ -96,7 +96,7 @@ const Cloud = {
       <section class="auth-panel" aria-labelledby="auth-title">
         <div class="auth-brand"><span>EB</span><strong>EASYBILL</strong></div>
         <h1 id="auth-title">${signingUp ? 'Create your business account' : 'Sign in to EasyBill'}</h1>
-        <p class="auth-description">${signingUp ? 'Your business data will be private to this account.' : 'Access your products, customers, and invoices.'}</p>
+        <p class="auth-description">${signingUp ? 'Your business data will be private to this account.' : ' Once you sign up, please confirm your account by clicking the verification link sent to your email.'}</p>
         <form class="auth-form" onsubmit="Cloud.submitAuth(event)">
           ${signingUp ? '<label class="form-label" for="auth-name">Your name</label><input class="form-control" id="auth-name" name="name" autocomplete="name">' : ''}
           <label class="form-label" for="auth-email">Email</label>
