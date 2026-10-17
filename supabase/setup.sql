@@ -26,9 +26,13 @@ create table if not exists public.business_members (
   business_id uuid not null references public.businesses (id) on delete cascade,
   user_id uuid not null references public.profiles (id) on delete cascade,
   role text not null check (role in ('owner', 'manager', 'cashier')),
+  is_active boolean not null default true,
   created_at timestamptz not null default now(),
   unique (business_id, user_id)
 );
+
+alter table public.business_members
+  add column if not exists is_active boolean not null default true;
 
 create table if not exists public.customers (
   id uuid primary key default gen_random_uuid(),
@@ -56,11 +60,17 @@ create table if not exists public.products (
   gst_rate numeric(5, 2) not null default 0 check (gst_rate >= 0 and gst_rate <= 100),
   current_stock numeric(14, 3) not null default 0 check (current_stock >= 0),
   low_stock_threshold numeric(14, 3) not null default 5 check (low_stock_threshold >= 0),
+  manufacturing_date date,
+  expiry_date date,
   track_stock boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (business_id, barcode)
 );
+
+alter table public.products
+  add column if not exists manufacturing_date date,
+  add column if not exists expiry_date date;
 
 create table if not exists public.invoices (
   id uuid primary key default gen_random_uuid(),
@@ -319,7 +329,8 @@ begin
   ) then
     insert into public.products (
       id, business_id, name, description, image_url, barcode, hsn_sac, unit,
-      unit_price, purchase_price, gst_rate, current_stock, low_stock_threshold, track_stock
+      unit_price, purchase_price, gst_rate, current_stock, low_stock_threshold,
+      manufacturing_date, expiry_date, track_stock
     ) values (
       coalesce(requested_id, gen_random_uuid()), p_business_id, trim(p_product ->> 'name'), p_product ->> 'description', p_product ->> 'image_url',
       nullif(trim(p_product ->> 'barcode'), ''), p_product ->> 'hsn_sac', coalesce(nullif(p_product ->> 'unit', ''), 'Pcs'),
@@ -327,6 +338,8 @@ begin
       coalesce(nullif(p_product ->> 'purchase_price', '')::numeric, 0),
       coalesce(nullif(p_product ->> 'gst_rate', '')::numeric, 0), new_stock,
       coalesce(nullif(p_product ->> 'low_stock_threshold', '')::numeric, 5),
+      nullif(p_product ->> 'manufacturing_date', '')::date,
+      nullif(p_product ->> 'expiry_date', '')::date,
       coalesce(nullif(p_product ->> 'track_stock', '')::boolean, new_stock > 0)
     ) returning * into saved;
     if saved.track_stock and new_stock > 0 then
@@ -349,6 +362,8 @@ begin
       gst_rate = coalesce(nullif(p_product ->> 'gst_rate', '')::numeric, 0),
       current_stock = new_stock,
       low_stock_threshold = coalesce(nullif(p_product ->> 'low_stock_threshold', '')::numeric, 5),
+      manufacturing_date = nullif(p_product ->> 'manufacturing_date', '')::date,
+      expiry_date = nullif(p_product ->> 'expiry_date', '')::date,
       track_stock = coalesce(nullif(p_product ->> 'track_stock', '')::boolean, new_stock > 0)
     where id = requested_id and business_id = p_business_id returning * into saved;
     stock_delta := new_stock - old_stock;
