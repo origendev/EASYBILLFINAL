@@ -5,12 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description"
-    content="EASYBILL — Simple, elegant billing software for small businesses. Create invoices, manage customers & products, export to PDF & Word.">
+    content="EASYBILL — Simple, elegant POS billing software for small businesses.">
   <title>EASYBILL — Billing Software</title>
 
   <!-- Favicon -->
-  <link rel="icon"
-    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect rx='20' width='100' height='100' fill='%230d9488'/><text x='50' y='68' font-size='50' font-weight='bold' text-anchor='middle' fill='white' font-family='sans-serif'>EB</text></svg>">
+  <link rel="icon" type="image/png" href="css/easybill-logo.png">
 
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,19 +19,14 @@
     rel="stylesheet">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="css/styles.css?v=3">
+  <link rel="stylesheet" href="css/styles.css?v=6">
 
-  <!-- Libraries (CDN) -->
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
-  <!-- jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <!-- html2canvas -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <!-- html-docx-js -->
-  <script src="https://unpkg.com/html-docx-js@0.3.1/dist/html-docx.js"></script>
-  <!-- Supabase JS client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Libraries (bundled locally so the app works offline / without CDN access) -->
+  <script src="js/vendor/lucide.min.js"></script>
+  <script src="js/vendor/jspdf.umd.min.js"></script>
+  <script src="js/vendor/html2canvas.min.js"></script>
+  <script src="js/vendor/html-docx.js"></script>
+  <script src="js/vendor/supabase.js"></script>
 </head>
 
 <body>
@@ -45,10 +39,12 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <div class="sidebar-logo">EB</div>
+        <div class="sidebar-logo">
+          <img src="css/easybill-logo.png" alt="EasyBill logo">
+        </div>
         <div class="sidebar-brand">
-          <h1>EASYBILL</h1>
-          <span>Billing Made Easy</span>
+          <h1>Easy<span class="brand-highlight">Bill</span></h1>
+          <span>Smart Billing & POS</span>
         </div>
       </div>
 
@@ -62,13 +58,9 @@
           <i data-lucide="scan-line"></i>
           <span>Point of Sale</span>
         </div>
-        <div class="nav-item" data-view="new-invoice" onclick="App.navigate('new-invoice')">
-          <i data-lucide="file-plus"></i>
-          <span>New Invoice</span>
-        </div>
-        <div class="nav-item" data-view="invoices" onclick="App.navigate('invoices')">
-          <i data-lucide="file-text"></i>
-          <span>Invoice History</span>
+        <div class="nav-item" data-view="reports" onclick="App.navigate('reports')">
+          <i data-lucide="bar-chart-3"></i>
+          <span>Sales Reports</span>
         </div>
 
         <div class="nav-section-title">Manage</div>
@@ -83,6 +75,14 @@
         <div class="nav-item" data-view="stocks" onclick="App.navigate('stocks')">
           <i data-lucide="boxes"></i>
           <span>Stocks</span>
+        </div>
+        <div class="nav-item" data-view="barcode-generator" onclick="App.navigate('barcode-generator')">
+          <i data-lucide="scan-line"></i>
+          <span>Barcode Generator</span>
+        </div>
+        <div class="nav-item" data-view="operations" onclick="App.navigate('operations')">
+          <i data-lucide="clipboard-list"></i>
+          <span>Operations &amp; Loyalty</span>
         </div>
 
         <div class="nav-section-title">System</div>
@@ -112,8 +112,8 @@
               <span class="status-dot"></span>
               <span>Local data ready</span>
             </button>
-            <button class="btn btn-primary" type="button" onclick="App.navigate('new-invoice')">
-              <i data-lucide="plus"></i> New Invoice
+            <button class="btn btn-primary" type="button" onclick="App.navigate('pos')">
+              <i data-lucide="scan-line"></i> Point of Sale
             </button>
           </div>
         </div>
@@ -147,12 +147,11 @@
         </button>
       </div>
       <div class="modal-body command-list">
-        <button class="command-item" type="button" onclick="App.command('new-invoice')"><span class="command-icon"><i data-lucide="file-plus"></i></span><span><strong>New invoice</strong><small>Create and save a bill</small></span><kbd>N</kbd></button>
-        <button class="command-item" type="button" onclick="App.command('pos')"><span class="command-icon"><i data-lucide="scan-line"></i></span><span><strong>Point of sale</strong><small>Scan products and checkout</small></span></button>
-        <button class="command-item" type="button" onclick="App.command('customers')"><span class="command-icon"><i data-lucide="users"></i></span><span><strong>Customers</strong><small>Open your customer database</small></span><kbd>C</kbd></button>
-        <button class="command-item" type="button" onclick="App.command('products')"><span class="command-icon"><i data-lucide="package"></i></span><span><strong>Products &amp; services</strong><small>Manage your catalog</small></span><kbd>P</kbd></button>
+        <button class="command-item" type="button" onclick="App.command('pos')"><span class="command-icon"><i data-lucide="scan-line"></i></span><span><strong>Point of sale</strong><small>Scan products and checkout</small></span><kbd>P</kbd></button>
+        <button class="command-item" type="button" onclick="App.command('reports')"><span class="command-icon"><i data-lucide="bar-chart-3"></i></span><span><strong>Sales reports</strong><small>Review weekly, monthly, and yearly sales</small></span><kbd>R</kbd></button>
+        <button class="command-item" type="button" onclick="App.command('customers')"><span class="command-icon"><i data-lucide="users"></i></span><span><strong>Customers</strong><small>Manage customer database by mobile</small></span><kbd>C</kbd></button>
+        <button class="command-item" type="button" onclick="App.command('products')"><span class="command-icon"><i data-lucide="package"></i></span><span><strong>Products &amp; services</strong><small>Manage catalog &amp; cost prices</small></span></button>
         <button class="command-item" type="button" onclick="App.command('stocks')"><span class="command-icon"><i data-lucide="boxes"></i></span><span><strong>Stocks</strong><small>Check inventory and low-stock items</small></span></button>
-        <button class="command-item" type="button" onclick="App.command('invoices')"><span class="command-icon"><i data-lucide="history"></i></span><span><strong>Invoice history</strong><small>Search, export, and track payment</small></span><kbd>I</kbd></button>
         <button class="command-item" type="button" onclick="App.command('settings')"><span class="command-icon"><i data-lucide="settings"></i></span><span><strong>Settings &amp; backup</strong><small>Protect your local business data</small></span><kbd>S</kbd></button>
       </div>
       <div class="command-footer"><span>Press <kbd>Esc</kbd> to close</span><span>Works offline</span></div>
@@ -182,17 +181,20 @@
   <!-- JavaScript Modules (order matters) -->
   <script src="js/supabase-config.js"></script>
   <script src="js/utils.js"></script>
+  <script src="js/domain.js"></script>
+  <script src="js/icons.js?v=2"></script>
   <script src="js/storage.js"></script>
   <script src="js/cloud.js"></script>
+  <script src="js/barcode-generator.js"></script>
   <script src="js/export.js"></script>
   <script src="js/dashboard.js"></script>
+  <script src="js/reports.js"></script>
   <script src="js/customers.js"></script>
-  <script src="js/products.js?v=2"></script>
+  <script src="js/products.js?v=3"></script>
   <script src="js/pos.js"></script>
   <script src="js/stocks.js"></script>
-  <script src="js/invoices.js"></script>
-  <script src="js/invoice-list.js"></script>
   <script src="js/settings.js"></script>
+  <script src="js/operations.js"></script>
   <script src="js/app.js"></script>
 </body>
 

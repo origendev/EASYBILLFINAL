@@ -1,33 +1,29 @@
 {
   "name": "easybill-desktop",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "EasyBill billing and point-of-sale desktop application",
   "author": "EasyBill",
   "main": "electron/main.cjs",
   "private": true,
-
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win nsis"
+    "dist:win": "electron-builder --win nsis",
+    "test": "node --test tests/*.test.cjs",
+    "check": "node --check electron/main.cjs && node --check js/app.js && node --check js/cloud.js && node --check js/storage.js && node --check js/pos.js && node --check js/domain.js && node --check js/operations.js && node --check js/reports.js && node --check js/customers.js && node --check js/products.js && node --check js/stocks.js && node --check js/settings.js && node --check js/barcode-generator.js && node --check js/export.js && node --check js/dashboard.js && node --check js/utils.js && node --check js/icons.js"
   },
-
   "devDependencies": {
     "electron": "^38.0.0",
     "electron-builder": "^26.0.12"
   },
-
   "dependencies": {
     "electron-updater": "^6.8.9"
   },
-
   "build": {
     "appId": "com.easybill.desktop",
     "productName": "EasyBill",
-
     "directories": {
       "output": "release"
     },
-
     "files": [
       "electron/**/*",
       "index.html",
@@ -35,14 +31,13 @@
       "js/**/*",
       "!js/**/.*"
     ],
-
     "win": {
+      "icon": "css/easybill-logo.ico",
       "target": [
         "nsis"
       ],
       "artifactName": "EasyBill-Setup-${version}.${ext}"
     },
-
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
@@ -50,7 +45,6 @@
       "createStartMenuShortcut": true,
       "shortcutName": "EasyBill"
     },
-
     "publish": {
       "provider": "github",
       "owner": "origendev",
