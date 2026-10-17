@@ -1,5 +1,6 @@
 /* ============================================
    EASYBILL — Customer Management Module
+   Primary Focus: Mobile Number (Mandatory)
    ============================================ */
 
 const Customers = {
@@ -15,11 +16,11 @@ const Customers = {
         <div class="filters-bar">
           <div class="search-bar" style="flex: 1; max-width: 400px;">
             <i data-lucide="search"></i>
-            <input type="text" id="customer-search" placeholder="Search customers..." 
+            <input type="text" id="customer-search" placeholder="Search by mobile no. or name..." 
               value="${Utils.escapeHtml(this.searchQuery)}" oninput="Customers.onSearch(this.value)">
           </div>
           <button class="btn btn-primary" onclick="Customers.openModal()">
-            <i data-lucide="user-plus"></i> Add Customer
+            <i data-lucide="user-plus"></i> Add Customer (by Mobile)
           </button>
         </div>
 
@@ -29,8 +30,8 @@ const Customers = {
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Phone</th>
+                  <th>Mobile Number</th>
+                  <th>Customer Name</th>
                   <th>Email</th>
                   <th>GSTIN</th>
                   <th>Added</th>
@@ -41,21 +42,18 @@ const Customers = {
                 ${customers.map(c => `
                   <tr>
                     <td>
-                      <strong style="color: var(--text-primary);">${Utils.escapeHtml(c.name)}</strong>
+                      <strong style="color: var(--accent); font-size: 15px;"><i data-lucide="phone" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i> ${Utils.escapeHtml(c.phone)}</strong>
+                    </td>
+                    <td>
+                      <strong style="color: var(--text-primary);">${Utils.escapeHtml(c.name || 'Customer')}</strong>
                       ${c.address ? `<br><small style="color: var(--text-muted);">${Utils.escapeHtml(c.address)}</small>` : ''}
                     </td>
-                    <td>${Utils.escapeHtml(c.phone || '-')}</td>
                     <td>${Utils.escapeHtml(c.email || '-')}</td>
                     <td><code style="font-size: 12px; color: var(--text-muted);">${Utils.escapeHtml(c.gstin || '-')}</code></td>
                     <td>${Utils.formatDate(c.createdAt)}</td>
                     <td>
                       <div class="table-actions">
-                        <button class="btn btn-ghost btn-sm" onclick="Customers.openModal('${c.id}')" title="Edit">
-                          <i data-lucide="pencil"></i>
-                        </button>
-                        <button class="btn btn-ghost btn-sm" onclick="Customers.deleteCustomer('${c.id}')" title="Delete" style="color: var(--danger);">
-                          <i data-lucide="trash-2"></i>
-                        </button>
+                        ${(!Cloud.user || ['owner','manager'].includes(Cloud.role)) ? `<button class="btn btn-secondary btn-sm" onclick="Customers.openModal('${c.id}')" title="Edit Customer Details"><i data-lucide="pencil"></i> <span>Edit</span></button><button class="btn btn-ghost btn-sm" onclick="Customers.deleteCustomer('${c.id}')" title="Delete" style="color: var(--danger);"><i data-lucide="trash-2"></i></button>` : '<span class="text-muted">View only</span>'}
                       </div>
                     </td>
                   </tr>
@@ -68,7 +66,7 @@ const Customers = {
             <div class="empty-state">
               <i data-lucide="users"></i>
               <h3>No Customers Found</h3>
-              <p>${this.searchQuery ? 'No customers match your search' : 'Add your first customer to get started'}</p>
+              <p>${this.searchQuery ? 'No customers match your search' : 'Add your first customer by mobile number'}</p>
               ${!this.searchQuery ? `
                 <button class="btn btn-primary" onclick="Customers.openModal()">
                   <i data-lucide="user-plus"></i> Add Customer
@@ -80,7 +78,7 @@ const Customers = {
       </div>
     `;
 
-    if (window.lucide) lucide.createIcons();
+    Icons.renderAll();
   },
 
   getFilteredCustomers() {
@@ -88,8 +86,8 @@ const Customers = {
     if (this.searchQuery) {
       const q = this.searchQuery.toLowerCase();
       customers = customers.filter(c =>
-        (c.name && c.name.toLowerCase().includes(q)) ||
         (c.phone && c.phone.includes(q)) ||
+        (c.name && c.name.toLowerCase().includes(q)) ||
         (c.email && c.email.toLowerCase().includes(q)) ||
         (c.gstin && c.gstin.toLowerCase().includes(q))
       );
@@ -102,7 +100,8 @@ const Customers = {
     Customers.render();
   }, 250),
 
-  openModal(id = null) {
+  openModal(id = null, defaultPhone = '') {
+    if (id && Cloud.user && !['owner','manager'].includes(Cloud.role)) { Utils.toast('Cashiers can add customers but cannot edit existing records.','error'); return; }
     const customer = id ? Storage.getById('customers', id) : null;
     const isEdit = !!customer;
 
@@ -119,21 +118,22 @@ const Customers = {
           <form id="customer-form" onsubmit="Customers.saveCustomer(event, '${id || ''}')">
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Customer Name <span class="required">*</span></label>
-                <input type="text" class="form-control" name="name" required
-                  placeholder="e.g. Rajesh Kumar" value="${isEdit ? Utils.escapeHtml(customer.name) : ''}">
+                <label class="form-label">Mobile Number <span class="required">* (Mandatory)</span></label>
+                <input type="tel" class="form-control" name="phone" required
+                  placeholder="e.g. 9876543210" value="${isEdit ? Utils.escapeHtml(customer.phone || '') : Utils.escapeHtml(defaultPhone)}">
+                <span class="form-hint">Used as primary unique key to identify customers.</span>
               </div>
               <div class="form-group">
-                <label class="form-label">Phone Number</label>
-                <input type="tel" class="form-control" name="phone"
-                  placeholder="e.g. 9876543210" value="${isEdit ? Utils.escapeHtml(customer.phone || '') : ''}">
+                <label class="form-label">Customer Name <span class="pos-optional">(Optional)</span></label>
+                <input type="text" class="form-control" name="name"
+                  placeholder="e.g. Rajesh Kumar" value="${isEdit ? Utils.escapeHtml(customer.name || '') : ''}">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Email</label>
                 <input type="email" class="form-control" name="email"
-                  placeholder="e.g. rajesh@email.com" value="${isEdit ? Utils.escapeHtml(customer.email || '') : ''}">
+                  placeholder="e.g. customer@email.com" value="${isEdit ? Utils.escapeHtml(customer.email || '') : ''}">
               </div>
               <div class="form-group">
                 <label class="form-label">GSTIN</label>
@@ -143,7 +143,7 @@ const Customers = {
             </div>
             <div class="form-group">
               <label class="form-label">Address</label>
-              <textarea class="form-control" name="address" rows="3"
+              <textarea class="form-control" name="address" rows="2"
                 placeholder="Full address">${isEdit ? Utils.escapeHtml(customer.address || '') : ''}</textarea>
             </div>
           </form>
@@ -158,7 +158,7 @@ const Customers = {
     `;
 
     overlay.classList.add('active');
-    if (window.lucide) lucide.createIcons();
+    Icons.renderAll();
   },
 
   closeModal() {
@@ -167,19 +167,27 @@ const Customers = {
 
   async saveCustomer(e, id) {
     e.preventDefault();
+    if (id && Cloud.user && !['owner','manager'].includes(Cloud.role)) { Utils.toast('Cashiers cannot edit existing customer records.','error'); return; }
     const form = e.target;
-    const data = {
-      name: form.name.value.trim(),
-      phone: form.phone.value.trim(),
-      email: form.email.value.trim(),
-      gstin: form.gstin.value.trim(),
-      address: form.address.value.trim()
-    };
+    const phone = form.phone.value.trim();
+    const name = form.name.value.trim() || 'Customer';
+    const email = form.email.value.trim();
+    const gstin = form.gstin.value.trim();
+    const address = form.address.value.trim();
 
-    if (!data.name) {
-      Utils.toast('Customer name is required', 'error');
+    if (!phone) {
+      Utils.toast('Mobile number is mandatory', 'error');
       return;
     }
+
+    // Check duplicate phone number
+    const existing = Storage.getAll('customers').find(c => c.phone === phone && c.id !== id);
+    if (existing) {
+      Utils.toast(`A customer with mobile number ${phone} already exists (${existing.name || 'Customer'})`, 'warning');
+      return;
+    }
+
+    const data = { name, phone, email, gstin, address };
 
     const button = document.querySelector('#modal-overlay .modal-footer .btn-primary');
     if (button) button.disabled = true;
@@ -205,10 +213,12 @@ const Customers = {
   },
 
   async deleteCustomer(id) {
+    if (Cloud.user && !['owner','manager'].includes(Cloud.role)) { Utils.toast('Cashiers cannot delete customers.','error'); return; }
     const customer = Storage.getById('customers', id);
+    const label = customer ? `${customer.phone} (${customer.name || 'Customer'})` : 'this customer';
     const confirmed = await Utils.confirm(
       'Delete Customer',
-      `Are you sure you want to delete "${customer.name}"? This action cannot be undone.`
+      `Are you sure you want to delete "${label}"? This action cannot be undone.`
     );
     if (confirmed) {
       try {

@@ -142,7 +142,7 @@ const Settings = {
       </div>
     `;
 
-    if (window.lucide) lucide.createIcons();
+    Icons.renderAll();
   },
 
   async saveSettings(e) {

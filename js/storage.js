@@ -63,8 +63,9 @@ const Storage = {
 
   // Get a single item by ID
   getById(collection, id) {
+    if (!id) return null;
     const items = this.getAll(collection);
-    return items.find(item => item.id === id) || null;
+    return items.find(item => item.id === id || String(item.id) === String(id)) || null;
   },
 
   // Add an item to a collection
@@ -137,22 +138,29 @@ const Storage = {
   async importData(jsonString) {
     try {
       const data = JSON.parse(jsonString);
-      if (!data.version) throw new Error('Invalid backup file');
-      const collections = ['customers', 'products', 'invoices'];
-      if (collections.some(key => data[key] !== undefined && !Array.isArray(data[key]))) {
-        throw new Error('Invalid collection in backup file');
-      }
+      const validation = EasyBillDomain.validateBackup(data);
+      if (!validation.valid) throw new Error(validation.message);
 
       if (Cloud.user) return await Cloud.importBackup(data);
 
+      // Validate storage availability before modifying anything, then preserve a rollback snapshot.
       const keys = ['customers', 'products', 'invoices', 'settings'];
-      keys.forEach(key => {
-        if (data[key] !== undefined) {
-          this.set(key, data[key]);
+      const previous = Object.fromEntries(keys.map(key => [key, this.get(key)]));
+      const previousCounter = this.getInvoiceCounter();
+      try {
+        for (const key of keys) {
+          if (data[key] !== undefined && !this.set(key, data[key])) throw new Error(`Could not restore ${key}.`);
         }
-      });
-      if (data.lastInvoiceNum !== undefined) this.setInvoiceCounter(data.lastInvoiceNum);
-      return true;
+        if (data.lastInvoiceNum !== undefined) this.setInvoiceCounter(data.lastInvoiceNum);
+        return true;
+      } catch (error) {
+        for (const key of keys) {
+          if (previous[key] === null) this.remove(key);
+          else this.set(key, previous[key]);
+        }
+        this.setInvoiceCounter(previousCounter);
+        throw error;
+      }
     } catch (e) {
       console.error('Import error:', e);
       return false;

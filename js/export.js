@@ -50,7 +50,7 @@ const ExportModule = {
             <h4>Payment Info</h4>
             <p>
               <strong>Status:</strong> 
-              <span style="color: ${invoice.status === 'paid' ? '#22c55e' : invoice.status === 'partial' ? '#f59e0b' : '#ef4444'};">
+              <span style="color: ${invoice.status === 'paid' ? '#596b22' : invoice.status === 'partial' ? '#f59e0b' : '#ef4444'};">
                 ${(invoice.status || 'unpaid').charAt(0).toUpperCase() + (invoice.status || 'unpaid').slice(1)}
               </span>
               ${invoice.dueDate ? `<br><strong>Due:</strong> ${Utils.formatDate(invoice.dueDate)}` : ''}
@@ -94,7 +94,7 @@ const ExportModule = {
               <span>${Utils.formatCurrency(invoice.subtotal || 0)}</span>
             </div>
             ${(invoice.totalDiscount || 0) > 0 ? `
-              <div class="inv-totals-row" style="color: #22c55e;">
+              <div class="inv-totals-row" style="color: #596b22;">
                 <span>Discount</span>
                 <span>-${Utils.formatCurrency(invoice.totalDiscount)}</span>
               </div>
@@ -174,7 +174,7 @@ const ExportModule = {
     `;
 
     overlay.classList.add('active');
-    if (window.lucide) lucide.createIcons();
+    Icons.renderAll();
 
     // Store current invoice data for export
     this._currentInvoice = invoice;
@@ -264,8 +264,8 @@ const ExportModule = {
             body { font-family: 'Calibri', Arial, sans-serif; font-size: 12pt; color: #333; }
             table { border-collapse: collapse; width: 100%; }
             th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #0d9488; color: white; }
-            h1, h2, h3, h4 { color: #0d9488; }
+            th { background-color: #596b22; color: white; }
+            h1, h2, h3, h4 { color: #596b22; }
             .text-right { text-align: right; }
           </style>
         </head>
@@ -343,31 +343,31 @@ const ExportModule = {
             color: #1a1a1a;
           }
           .invoice-preview { max-width: 800px; margin: 0 auto; }
-          .inv-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #0d9488; }
-          .inv-logo-area h2 { font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 800; color: #0d9488; margin-bottom: 4px; }
+          .inv-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #596b22; }
+          .inv-logo-area h2 { font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 800; color: #596b22; margin-bottom: 4px; }
           .inv-logo-area p { font-size: 13px; color: #666; line-height: 1.6; }
           .inv-title-area { text-align: right; }
-          .inv-title-area h1 { font-family: 'Outfit', sans-serif; font-size: 36px; font-weight: 800; color: #0d9488; letter-spacing: -1px; }
+          .inv-title-area h1 { font-family: 'Outfit', sans-serif; font-size: 36px; font-weight: 800; color: #596b22; letter-spacing: -1px; }
           .inv-meta p { font-size: 13px; color: #666; }
           .inv-meta strong { color: #333; }
           .inv-parties { display: flex; gap: 40px; margin-bottom: 32px; }
           .inv-party { flex: 1; }
-          .inv-party h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #0d9488; font-weight: 600; margin-bottom: 8px; }
+          .inv-party h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #596b22; font-weight: 600; margin-bottom: 8px; }
           .inv-party p { font-size: 13px; color: #555; line-height: 1.6; }
           .inv-party strong { font-size: 15px; color: #1a1a1a; display: block; margin-bottom: 2px; }
           .inv-items-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-          .inv-items-table thead { background: #0d9488; color: white; }
+          .inv-items-table thead { background: #596b22; color: white; }
           .inv-items-table th { padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
           .inv-items-table th:last-child, .inv-items-table td:last-child { text-align: right; }
           .inv-items-table td { padding: 12px 16px; font-size: 13px; color: #555; border-bottom: 1px solid #eee; }
           .inv-totals { display: flex; justify-content: flex-end; margin-bottom: 32px; }
           .inv-totals-table { width: 280px; }
           .inv-totals-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; color: #555; }
-          .inv-totals-row.total { border-top: 2px solid #0d9488; margin-top: 8px; padding-top: 12px; font-size: 18px; font-weight: 700; color: #1a1a1a; }
+          .inv-totals-row.total { border-top: 2px solid #596b22; margin-top: 8px; padding-top: 12px; font-size: 18px; font-weight: 700; color: #1a1a1a; }
           .inv-footer { border-top: 1px solid #eee; padding-top: 20px; }
           .inv-footer h4 { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 6px; }
           .inv-footer p { font-size: 12px; color: #888; line-height: 1.6; }
-          .inv-thank-you { text-align: center; margin-top: 24px; font-size: 14px; font-weight: 600; color: #0d9488; }
+          .inv-thank-you { text-align: center; margin-top: 24px; font-size: 14px; font-weight: 600; color: #596b22; }
           img { max-height: 60px; max-width: 180px; }
           @media print { body { padding: 0; } }
         </style>

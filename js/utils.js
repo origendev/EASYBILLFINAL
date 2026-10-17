@@ -91,7 +91,7 @@ const Utils = {
     container.appendChild(toast);
 
     // Re-initialize lucide icons for the new toast
-    if (window.lucide) lucide.createIcons();
+    Icons.renderAll();
 
     setTimeout(() => {
       toast.classList.add('toast-exit');
@@ -159,5 +159,17 @@ const Utils = {
       words += ones[num] + ' ';
     }
     return words.trim();
+  },
+
+  refreshIcons() {
+    if (window.Icons) {
+      Icons.renderAll();
+    } else if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      try {
+        window.lucide.createIcons();
+      } catch (e) {
+        console.warn('Lucide icon refresh warning:', e);
+      }
+    }
   }
 };

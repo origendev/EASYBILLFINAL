@@ -33,9 +33,11 @@ const Products = {
                 <tr>
                   <th>Product / Service</th>
                   <th>HSN/SAC</th>
-                  <th>Unit</th>
-                  <th>Price</th>
+                  <th>Selling Price</th>
+                  <th>Cost Price</th>
                   <th>GST %</th>
+                  <th>Manufactured</th>
+                  <th>Expires</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -48,13 +50,15 @@ const Products = {
                       ${p.description ? `<br><small style="color: var(--text-muted);">${Utils.escapeHtml(p.description)}</small>` : ''}
                     </td>
                     <td><code style="font-size: 12px; color: var(--text-muted);">${Utils.escapeHtml(p.hsn || '-')}</code></td>
-                    <td>${Utils.escapeHtml(p.unit || 'Pcs')}</td>
                     <td><strong style="color: var(--text-primary);">${Utils.formatCurrency(p.price)}</strong></td>
+                    <td><strong style="color: var(--text-muted);">${p.costPrice ? Utils.formatCurrency(p.costPrice) : '-'}</strong></td>
                     <td><span class="badge badge-info">${p.gstRate || 0}%</span></td>
+                    <td>${p.manufacturingDate ? Utils.formatDate(p.manufacturingDate) : '-'}</td>
+                    <td>${p.expiryDate ? Utils.formatDate(p.expiryDate) : '-'}</td>
                     <td>
                       <div class="table-actions">
-                        <button class="btn btn-ghost btn-sm" onclick="Products.openModal('${p.id}')" title="Edit">
-                          <i data-lucide="pencil"></i>
+                        <button class="btn btn-secondary btn-sm" onclick="Products.openModal('${p.id}')" title="Edit Product Details">
+                          <i data-lucide="pencil"></i> <span>Edit</span>
                         </button>
                         <button class="btn btn-ghost btn-sm" onclick="Products.deleteProduct('${p.id}')" title="Delete" style="color: var(--danger);">
                           <i data-lucide="trash-2"></i>
@@ -83,7 +87,7 @@ const Products = {
       </div>
     `;
 
-    if (window.lucide) lucide.createIcons();
+    Icons.renderAll();
   },
 
   getFilteredProducts() {
@@ -170,10 +174,18 @@ const Products = {
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Unit Price (₹) <span class="required">*</span></label>
+                <label class="form-label">Selling Price (₹) <span class="required">*</span></label>
                 <input type="number" class="form-control" name="price" required min="0" step="0.01"
                   placeholder="0.00" value="${isEdit ? product.price : ''}">
               </div>
+              <div class="form-group">
+                <label class="form-label">Cost Price (₹) <span class="pos-optional">(For Net Profit)</span></label>
+                <input type="number" class="form-control" name="costPrice" min="0" step="0.01"
+                  placeholder="0.00" value="${isEdit && product.costPrice !== undefined ? product.costPrice : ''}">
+                <span class="form-hint">Used for precise Net Profit calculation</span>
+              </div>
+            </div>
+            <div class="form-row">
               <div class="form-group">
                 <label class="form-label">GST Rate (%)</label>
                 <select class="form-control" name="gstRate">
@@ -182,17 +194,29 @@ const Products = {
                   ).join('')}
                 </select>
               </div>
-            </div>
-            <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Current Stock</label>
                 <input type="number" class="form-control" name="stock" min="0" step="any" required
                   value="${isEdit ? (product.stock ?? 0) : 0}">
               </div>
+            </div>
+            <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Low Stock Alert At</label>
                 <input type="number" class="form-control" name="lowStockThreshold" min="0" step="any" required
                   value="${isEdit ? (product.lowStockThreshold ?? 5) : 5}">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Date of Manufacture</label>
+                <input type="date" class="form-control" name="manufacturingDate"
+                  value="${isEdit ? Utils.escapeHtml(product.manufacturingDate || '') : ''}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Expiry Date</label>
+                <input type="date" class="form-control" name="expiryDate"
+                  value="${isEdit ? Utils.escapeHtml(product.expiryDate || '') : ''}">
               </div>
             </div>
           </form>
@@ -207,7 +231,7 @@ const Products = {
     `;
 
     overlay.classList.add('active');
-    if (window.lucide) lucide.createIcons();
+    Icons.renderAll();
   },
 
   closeModal() {
@@ -268,7 +292,7 @@ const Products = {
     preview.innerHTML = this.pendingImage
       ? `<img src="${Utils.escapeHtml(Cloud.productImageUrl(this.pendingImage))}" alt="Product preview">`
       : '<i data-lucide="image"></i><span>No image selected</span>';
-    if (window.lucide) lucide.createIcons();
+    Icons.renderAll();
   },
 
   removeImage() {
@@ -289,9 +313,12 @@ const Products = {
       hsn: form.hsn.value.trim(),
       unit: form.unit.value,
       price: parseFloat(form.price.value) || 0,
+      costPrice: form.costPrice.value !== '' ? parseFloat(form.costPrice.value) : 0,
       gstRate: parseInt(form.gstRate.value) || 0,
       stock: parseFloat(form.stock.value) || 0,
-      lowStockThreshold: parseFloat(form.lowStockThreshold.value) || 0
+      lowStockThreshold: parseFloat(form.lowStockThreshold.value) || 0,
+      manufacturingDate: form.manufacturingDate.value,
+      expiryDate: form.expiryDate.value
     };
 
     const productId = id || Utils.generateId();
@@ -301,6 +328,10 @@ const Products = {
 
     if (!data.name) {
       Utils.toast('Product name is required', 'error');
+      return;
+    }
+    if (data.manufacturingDate && data.expiryDate && data.expiryDate < data.manufacturingDate) {
+      Utils.toast('Expiry date cannot be before the manufacture date', 'error');
       return;
     }
 

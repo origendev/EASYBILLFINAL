@@ -19,6 +19,7 @@ const Cloud = {
   imageRefreshTimer: null,
   hasShownSyncError: false,
   authMode: 'signin',
+  authAudience: null,
 
   isConfigured() {
     const config = window.EASYBILL_SUPABASE_CONFIG || {};
@@ -43,8 +44,16 @@ const Cloud = {
     if (!window.supabase) {
       throw new Error('Supabase client library did not load. Check your internet connection.');
     }
+    try {
+      const projectRef = new URL(url).hostname.split('.')[0];
+      window.localStorage.removeItem(`sb-${projectRef}-auth-token`);
+    } catch (error) {
+      console.warn('Could not clear the previous Supabase sign-in session:', error);
+    }
     this.configured = true;
-    this.client = window.supabase.createClient(url, key);
+    this.client = window.supabase.createClient(url, key, {
+      auth: { persistSession: false }
+    });
     this.client.auth.onAuthStateChange(event => {
       if (event === 'PASSWORD_RECOVERY') this.showPasswordReset();
       if (event === 'SIGNED_OUT' && this.user) {
@@ -68,7 +77,7 @@ const Cloud = {
     this.user = data.user;
     const { data: memberships, error: membershipError } = await this.client
       .from('business_members')
-      .select('business_id, role, created_at')
+      .select('business_id, role, created_at, is_active')
       .eq('user_id', this.user.id)
       .order('created_at', { ascending: true });
     if (membershipError) throw membershipError;
@@ -76,42 +85,93 @@ const Cloud = {
       this.needsBusiness = true;
       return true;
     }
-    await this.activateBusiness(memberships[0].business_id, memberships[0].role);
+    const activeMembership = memberships.find(m => m.is_active !== false);
+    if (!activeMembership) throw new Error('Your business membership is inactive. Contact the business owner.');
+    await this.activateBusiness(activeMembership.business_id, activeMembership.role);
     return true;
   },
 
   showAuth(message = '') {
     const screen = document.getElementById('auth-screen');
     if (!screen) return;
+    this.authAudience = null;
+    this.authMode = 'signin';
     screen.hidden = false;
     this.renderAuth(message);
     this.setStatus('signed-out');
   },
 
-  renderAuth(message = '') {
+  renderAuth(message = '', email = '') {
     const screen = document.getElementById('auth-screen');
     if (!screen) return;
     const signingUp = this.authMode === 'signup';
+    if (!this.authAudience && !signingUp) {
+      screen.innerHTML = `
+        <section class="auth-panel auth-choice-panel" aria-labelledby="auth-title">
+          <div class="auth-brand"><img src="css/easybill-logo.png" alt="EasyBill logo"></div>
+          <h1 id="auth-title">Choose your sign-in</h1>
+          <p class="auth-description">Select the account type for your EasyBill workspace.</p>
+          <div class="auth-entry-options">
+            <button type="button" class="auth-entry-option" onclick="Cloud.setAuthAudience('business')">
+              <span class="auth-entry-icon"><i data-lucide="store"></i></span>
+              <span><strong>Owner / Manager</strong><small>Products, analytics, staff, settings, and business operations</small></span>
+              <i data-lucide="arrow-right"></i>
+            </button>
+            <button type="button" class="auth-entry-option" onclick="Cloud.setAuthAudience('employee')">
+              <span class="auth-entry-icon"><i data-lucide="scan-line"></i></span>
+              <span><strong>Billing / Cashier</strong><small>Point of sale, customers, shifts, and billing loyalty</small></span>
+              <i data-lucide="arrow-right"></i>
+            </button>
+          </div>
+          <p class="auth-message" role="status" aria-live="polite">${Utils.escapeHtml(message)}</p>
+        </section>
+      `;
+      if (window.Icons?.renderAll) Icons.renderAll();
+      return;
+    }
+    const businessAudience = this.authAudience === 'business';
+    const title = signingUp ? 'Create your business account' : (businessAudience ? 'Owner / manager sign in' : 'Billing / cashier sign in');
+    const description = signingUp
+      ? 'Create your business workspace. You can invite employees after setup.'
+      : (businessAudience
+        ? 'Owner and manager access for products, reports, settings, and business operations.'
+        : 'Billing access for cashiers. Use the account credentials provided by your business owner.');
     screen.innerHTML = `
       <section class="auth-panel" aria-labelledby="auth-title">
-        <div class="auth-brand"><span>EB</span><strong>EASYBILL</strong></div>
-        <h1 id="auth-title">${signingUp ? 'Create your business account' : 'Sign in to EasyBill'}</h1>
-        <p class="auth-description">${signingUp ? 'Your business data will be private to this account.' : ' Once you sign up, please confirm your account by clicking the verification link sent to your email.'}</p>
+        <div class="auth-brand"><img src="css/easybill-logo.png" alt="EasyBill logo"></div>
+        <button class="auth-back" type="button" onclick="Cloud.backToAuthChoices()"><i data-lucide="arrow-left"></i> All sign-in options</button>
+        <h1 id="auth-title">${title}</h1>
+        <p class="auth-description">${description}</p>
         <form class="auth-form" onsubmit="Cloud.submitAuth(event)">
-          ${signingUp ? '<label class="form-label" for="auth-name">Your name</label><input class="form-control" id="auth-name" name="name" autocomplete="name">' : ''}
+          ${signingUp ? '<label class="form-label" for="auth-name">Your name</label><input class="form-control" id="auth-name" name="name" autocomplete="name" required>' : ''}
           <label class="form-label" for="auth-email">Email</label>
-          <input class="form-control" id="auth-email" name="email" type="email" autocomplete="email" required>
+          <input class="form-control" id="auth-email" name="email" type="email" autocomplete="email" value="${Utils.escapeHtml(email)}" required>
           <label class="form-label" for="auth-password">Password</label>
           <input class="form-control" id="auth-password" name="password" type="password" autocomplete="${signingUp ? 'new-password' : 'current-password'}" minlength="6" required>
           <p class="auth-message" role="status" aria-live="polite">${Utils.escapeHtml(message)}</p>
-          <button class="btn btn-primary auth-submit" type="submit">${signingUp ? 'Create account' : 'Sign in'}</button>
+          <button class="btn btn-primary auth-submit" type="submit">${signingUp ? 'Create business account' : (businessAudience ? 'Sign in as owner / manager' : 'Sign in to billing')}</button>
         </form>
         ${signingUp ? '' : '<button class="auth-switch" type="button" onclick="Cloud.requestPasswordReset()">Forgot password?</button>'}
-        <button class="auth-switch" type="button" onclick="Cloud.toggleAuthMode()">
-          ${signingUp ? 'Already have an account? Sign in' : 'New to EasyBill? Create a business account'}
-        </button>
+        ${businessAudience
+          ? `<button class="auth-switch" type="button" onclick="Cloud.toggleAuthMode()">${signingUp ? 'Already have an account? Sign in' : 'New to EasyBill? Create a business account'}</button>`
+          : '<p class="auth-footnote">Billing accounts are created by the business owner. Ask your owner or manager to invite or activate your cashier account.</p>'}
       </section>
     `;
+    if (window.Icons?.renderAll) Icons.renderAll();
+  },
+
+  setAuthAudience(audience) {
+    if (!['business', 'employee'].includes(audience)) return;
+    this.authAudience = audience;
+    // Only business owners may start the self-service business registration flow.
+    if (audience === 'employee' && this.authMode === 'signup') this.authMode = 'signin';
+    this.renderAuth();
+  },
+
+  backToAuthChoices() {
+    this.authAudience = null;
+    this.authMode = 'signin';
+    this.renderAuth();
   },
 
   toggleAuthMode() {
@@ -128,6 +188,7 @@ const Cloud = {
     button.disabled = true;
     button.textContent = this.authMode === 'signup' ? 'Creating account...' : 'Signing in...';
 
+    let authenticationCompleted = false;
     try {
       const result = this.authMode === 'signup'
         ? await this.client.auth.signUp({
@@ -141,21 +202,38 @@ const Cloud = {
         : await this.client.auth.signInWithPassword({ email, password });
       if (result.error) throw result.error;
       if (!result.data.session) {
-        this.renderAuth('Check your email to confirm the account, then sign in here.');
+        this.renderAuth('Check your email to confirm the account, then sign in here.', email);
         return;
       }
       this.user = result.data.user;
+      authenticationCompleted = true;
       this.needsBusiness = true;
       await this.findBusiness();
       if (this.needsBusiness) {
+        if (this.authAudience === 'employee') {
+          this.renderAuth('No active employee membership was found for this account. Ask your business owner to invite you, then sign in again.');
+          return;
+        }
         this.showBusinessSetup();
+        return;
+      }
+      const ownerManager = ['owner', 'manager'].includes(String(this.role || '').toLowerCase());
+      if (this.authAudience === 'business' && !ownerManager) {
+        this.renderAuth('This account is assigned a billing role. Choose Billing / Cashier to continue.');
+        return;
+      }
+      if (this.authAudience === 'employee' && ownerManager) {
+        this.renderAuth('This account has owner/manager access. Choose Owner / Manager to continue.');
         return;
       }
       document.getElementById('auth-screen').hidden = true;
       App.startApplication();
     } catch (error) {
       console.error('Supabase authentication error:', error);
-      this.renderAuth(this.friendlyError(error));
+      const detail = this.friendlyError(error);
+      this.renderAuth(authenticationCompleted
+        ? `Authentication succeeded, but EasyBill could not load your business access. ${detail}`
+        : detail, email);
     }
   },
 
@@ -183,7 +261,7 @@ const Cloud = {
     screen.hidden = false;
     screen.innerHTML = `
       <section class="auth-panel" aria-labelledby="auth-title">
-        <div class="auth-brand"><span>EB</span><strong>EASYBILL</strong></div>
+        <div class="auth-brand"><img src="css/easybill-logo.png" alt="EasyBill logo"></div>
         <h1 id="auth-title">Choose a new password</h1>
         <form class="auth-form" onsubmit="Cloud.updatePassword(event)">
           <label class="form-label" for="reset-password">New password</label>
@@ -225,7 +303,7 @@ const Cloud = {
     screen.hidden = false;
     screen.innerHTML = `
       <section class="auth-panel" aria-labelledby="auth-title">
-        <div class="auth-brand"><span>EB</span><strong>EASYBILL</strong></div>
+        <div class="auth-brand"><img src="css/easybill-logo.png" alt="EasyBill logo"></div>
         <h1 id="auth-title">Set up your business</h1>
         <p class="auth-description">Your account will be the owner of this business. You can add team access later.</p>
         <form class="auth-form" onsubmit="Cloud.createBusiness(event)">
@@ -295,7 +373,7 @@ const Cloud = {
 
   async findBusiness() {
     const { data: memberships, error } = await this.client.from('business_members')
-      .select('business_id, role, created_at')
+      .select('business_id, role, created_at, is_active')
       .eq('user_id', this.user.id)
       .order('created_at', { ascending: true });
     if (error) throw error;
@@ -306,19 +384,35 @@ const Cloud = {
       this.needsBusiness = true;
       return;
     }
-    await this.activateBusiness(memberships[0].business_id, memberships[0].role);
+    const activeMembership = memberships.find(m => m.is_active !== false);
+    if (!activeMembership) throw new Error('Your business membership is inactive. Contact the business owner.');
+    await this.activateBusiness(activeMembership.business_id, activeMembership.role);
   },
 
   friendlyError(error) {
     const message = String(error?.message || '').toLowerCase();
+    const code = String(error?.code || '').toLowerCase();
+    if (message.includes('library did not load')) return 'A required app file (Supabase client) did not load. Reinstall or reload the app.';
     if (message.includes('invalid login credentials')) return 'Email or password is incorrect.';
     if (message.includes('already registered')) return 'An account with this email already exists. Sign in instead.';
-    if (message.includes('password')) return 'Password must contain at least 6 characters.';
-    if (message.includes('fetch') || message.includes('network')) return 'Could not reach Supabase. Check your internet connection.';
-    if (message.includes('relation') || message.includes('function') || message.includes('schema cache')) {
-      return 'Supabase setup is incomplete. Run supabase/setup.sql in the SQL Editor, then reload.';
+    if (message.includes('email not confirmed') || message.includes('email_not_confirmed')) return 'Confirm your email using the link sent by Supabase, then sign in again.';
+    if (message.includes('too many requests') || message.includes('rate limit')) return 'Too many attempts were made. Wait a few minutes, then try again.';
+    if (code === 'weak_password' || message.includes('password should be') || message.includes('password must contain')) return 'Password must contain at least 6 characters.';
+    if (message.includes('fetch') || message.includes('network') || message.includes('failed to fetch')) return 'Could not reach Supabase. Check your internet connection, then verify the project URL and publishable key in js/supabase-config.js.';
+    if (message.includes('invalid api key') || message.includes('apikey') || message.includes('api key')) return 'Supabase rejected the configured API key. Verify the publishable key in js/supabase-config.js matches this project.';
+    if (message.includes('project not found') || message.includes('tenant')) return 'The configured Supabase project could not be found. Verify the project URL in js/supabase-config.js.';
+    if (['pgrst200', 'pgrst202', 'pgrst205', '42p01'].includes(code) || message.includes('relation') || message.includes('function') || message.includes('schema cache')) {
+      const detail = String(error?.message || '').trim();
+      const guidance = 'Required EasyBill database objects are missing. For an existing project, apply supabase/migrations/20261016_stage1_10_additive.sql in the SQL Editor; use supabase/setup.sql only for a new project.';
+      return detail ? `${guidance} Supabase detail: ${detail.slice(0, 180)}` : guidance;
     }
-    return 'The request could not be completed. Check your connection and Supabase setup.';
+    if (message.includes('row-level security') || message.includes('permission denied') || message.includes('not allowed')) {
+      return 'Supabase denied access to this account or business data. Check the project RLS policies and active business membership.';
+    }
+    const detail = String(error?.message || error?.error_description || '').trim();
+    return detail
+      ? `Supabase returned: ${detail.slice(0, 240)}`
+      : 'The request failed without a server error message. Check the app console and Supabase Auth logs for details.';
   },
 
   async activateBusiness(businessId, role) {
@@ -351,21 +445,24 @@ const Cloud = {
     const businessId = this.businessId;
     const queries = await Promise.all([
       this.client.from('customers').select('*').eq('business_id', businessId).order('created_at', { ascending: false }),
-      this.client.from('products').select('*').eq('business_id', businessId).order('created_at', { ascending: false }),
-      this.client.from('invoices').select('*, invoice_items(*)').eq('business_id', businessId).order('created_at', { ascending: false }),
-      this.client.from('business_settings').select('*').eq('business_id', businessId).maybeSingle()
+      this.client.from('products').select('id,business_id,name,description,image_url,barcode,hsn_sac,unit,unit_price,gst_rate,current_stock,low_stock_threshold,manufacturing_date,expiry_date,track_stock,created_at,updated_at').eq('business_id', businessId).order('created_at', { ascending: false }),
+      this.client.from('invoices').select('*, invoice_items(*), invoice_payments(*)').eq('business_id', businessId).order('created_at', { ascending: false }),
+      this.client.from('business_settings').select('*').eq('business_id', businessId).maybeSingle(),
+      this.client.from('loyalty_settings').select('*').eq('business_id', businessId).maybeSingle()
     ]);
     const failed = queries.find(result => result.error);
     if (failed) throw failed.error;
-    const [customers, products, invoices, settings] = queries.map(result => result.data);
+    const [customers, products, invoices, settings, loyaltySettings] = queries.map(result => result.data);
     const mappedCustomers = (customers || []).map(row => this.mapCustomer(row));
     const mappedProducts = (products || []).map(row => this.mapProduct(row));
+    if (['owner','manager'].includes(this.role)) { const {data: costs, error: costError} = await this.client.rpc('get_business_product_costs',{p_business_id:businessId}); if(costError) throw costError; const byId=new Map((costs||[]).map(c=>[c.product_id,Number(c.purchase_price)||0])); mappedProducts.forEach(p=>{p.costPrice=byId.get(p.id)??0;p.purchasePrice=p.costPrice;}); }
     const mappedInvoices = (invoices || []).map(row => this.mapInvoice(row));
     this.hydrating = true;
     Storage.replaceLocal('customers', mappedCustomers);
     Storage.replaceLocal('products', mappedProducts);
     Storage.replaceLocal('invoices', mappedInvoices);
     Storage.replaceLocal('settings', this.mapSettings(settings, this.business));
+    if (loyaltySettings) Storage.set('loyaltySettings',{earnRate:Number(loyaltySettings.earn_points_per_100)||0,pointValue:Number(loyaltySettings.currency_per_point)||0,minimumRedemptionPoints:Number(loyaltySettings.minimum_redemption_points)||0});
     Storage.setInvoiceCounter(Number(settings?.last_invoice_number) || 0);
     this.hydrating = false;
     await this.refreshAssetUrls(mappedProducts, Storage.get('settings'));
@@ -384,8 +481,10 @@ const Cloud = {
       id: row.id, name: row.name, description: row.description || '',
       image: row.image_url ? `storage://${row.image_url}` : '', barcode: row.barcode || '',
       hsn: row.hsn_sac || '', unit: row.unit || 'Pcs', price: Number(row.unit_price) || 0,
-      purchasePrice: Number(row.purchase_price) || 0, gstRate: Number(row.gst_rate) || 0,
+      costPrice: Number(row.purchase_price) || 0, purchasePrice: Number(row.purchase_price) || 0,
+      gstRate: Number(row.gst_rate) || 0,
       stock: Number(row.current_stock) || 0, lowStockThreshold: Number(row.low_stock_threshold) || 0,
+      manufacturingDate: row.manufacturing_date || '', expiryDate: row.expiry_date || '',
       trackStock: Boolean(row.track_stock), createdAt: row.created_at, updatedAt: row.updated_at
     };
   },
@@ -404,7 +503,7 @@ const Cloud = {
       id: row.id, invoiceNumber: row.invoice_number, invoiceDate: row.invoice_date,
       dueDate: row.due_date, customerId: row.customer_id || '',
       customerName: row.customer_id ? '' : 'Walk-in Customer', status: row.status,
-      paymentMethod: row.payment_method || '', items, subtotal: Number(row.subtotal) || 0,
+      paymentMethod: row.payment_method || '', payments: (row.invoice_payments || []).map(p=>({method:p.method,amount:Number(p.amount)||0,reference:p.reference||'',status:p.status||'recorded'})), shiftId: row.shift_id || '', loyaltyPointsRedeemed:Number(row.loyalty_points_redeemed)||0, items, subtotal: Number(row.subtotal) || 0,
       totalDiscount: Number(row.discount) || 0, totalTaxable: Number(row.subtotal) - Number(row.discount),
       totalGst: Number(row.tax) || 0, grandTotal: Number(row.total) || 0,
       notes: row.notes || '', terms: row.terms || '', createdAt: row.created_at, updatedAt: row.updated_at
@@ -469,18 +568,25 @@ const Cloud = {
   },
 
   async saveCustomer(customer, id = null) {
+    const customerId = id && this.isUuid(id) ? id : null;
     const payload = {
       business_id: this.businessId,
-      name: customer.name.trim(), phone: customer.phone || null,
+      name: (customer.name || 'Customer').trim(), phone: customer.phone || null,
       email: customer.email || null, gstin: customer.gstin || null,
       address: customer.address || null
     };
-    let query = id && this.isUuid(id)
-      ? this.client.from('customers').update(payload).eq('id', id).eq('business_id', this.businessId)
-      : this.client.from('customers').insert(payload);
+    let query;
+    if (customerId) {
+      query = this.client.from('customers').update(payload).eq('id', customerId).eq('business_id', this.businessId);
+    } else {
+      query = this.client.from('customers').insert(payload);
+    }
     const { data, error } = await query.select('*').single();
     if (error) throw error;
     const saved = this.mapCustomer(data);
+    if (id && id !== saved.id) {
+      Storage.removeLocal('customers', id);
+    }
     Storage.upsertLocal('customers', saved);
     return saved;
   },
@@ -527,9 +633,11 @@ const Cloud = {
       name: product.name.trim(), description: product.description || null,
       image_url: imagePath, barcode: product.barcode || null,
       hsn_sac: product.hsn || null, unit: product.unit || 'Pcs',
-      unit_price: Number(product.price) || 0, purchase_price: Number(product.purchasePrice) || 0,
+      unit_price: Number(product.price) || 0, purchase_price: Number(product.costPrice ?? product.purchasePrice) || 0,
       gst_rate: Number(product.gstRate) || 0, current_stock: Number(product.stock) || 0,
       low_stock_threshold: Number(product.lowStockThreshold) || 0,
+      manufacturing_date: product.manufacturingDate || null,
+      expiry_date: product.expiryDate || null,
       track_stock: Boolean(product.trackStock || Number(product.stock) > 0)
     };
     const { error } = await this.client.rpc('save_product', {
@@ -540,6 +648,9 @@ const Cloud = {
       .select('*').eq('id', productId).eq('business_id', this.businessId).single();
     if (readError) throw readError;
     const saved = this.mapProduct(data);
+    if (id && id !== saved.id) {
+      Storage.removeLocal('products', id);
+    }
     Storage.upsertLocal('products', saved);
     await this.refreshAssetUrls([saved]);
     if (previousImage.startsWith('storage://') && previousImage !== saved.image) {
@@ -564,6 +675,9 @@ const Cloud = {
   invoicePayload(invoice) {
     return {
       ...(this.isUuid(invoice.id) ? { id: invoice.id } : {}),
+      ...(this.isUuid(invoice.clientTransactionId || invoice.id) ? { client_transaction_id: invoice.clientTransactionId || invoice.id } : {}),
+      ...(this.isUuid(invoice.shiftId) ? { shift_id: invoice.shiftId } : {}),
+      loyalty_points_redeemed: Math.max(0,Math.floor(Number(invoice.loyaltyPointsRedeemed)||0)),
       customer_id: this.isUuid(invoice.customerId) ? invoice.customerId : null,
       invoice_number: invoice.invoiceNumber,
       invoice_date: invoice.invoiceDate || new Date().toISOString().slice(0, 10),
@@ -593,14 +707,17 @@ const Cloud = {
 
   async saveInvoice(invoice, id = null) {
     const payload = this.invoicePayload({ ...invoice, id: id || invoice.id });
-    const { data: invoiceId, error } = await this.client.rpc('save_invoice_with_stock', {
+    const rpcName = Array.isArray(invoice.payments) && invoice.payments.length ? 'save_invoice_with_payments' : 'save_invoice_with_stock';
+    const rpcArgs = {
       p_business_id: this.businessId,
       p_invoice: payload,
       p_items: this.invoiceItemsPayload(invoice.items || [])
-    });
+    };
+    if (rpcName === 'save_invoice_with_payments') rpcArgs.p_payments = invoice.payments;
+    const { data: invoiceId, error } = await this.client.rpc(rpcName, rpcArgs);
     if (error) throw error;
     const { data, error: readError } = await this.client.from('invoices')
-      .select('*, invoice_items(*)').eq('id', invoiceId).eq('business_id', this.businessId).single();
+      .select('*, invoice_items(*), invoice_payments(*)').eq('id', invoiceId).eq('business_id', this.businessId).single();
     if (readError) throw readError;
     const saved = this.mapInvoice(data);
     Storage.upsertLocal('invoices', saved);
@@ -623,10 +740,11 @@ const Cloud = {
   },
 
   async refreshBusinessProducts() {
-    const { data, error } = await this.client.from('products').select('*')
+    const { data, error } = await this.client.from('products').select('id,business_id,name,description,image_url,barcode,hsn_sac,unit,unit_price,gst_rate,current_stock,low_stock_threshold,manufacturing_date,expiry_date,track_stock,created_at,updated_at')
       .eq('business_id', this.businessId).order('created_at', { ascending: false });
     if (error) throw error;
     const products = (data || []).map(row => this.mapProduct(row));
+    if (['owner','manager'].includes(this.role)) { const {data: costs, error: costError}=await this.client.rpc('get_business_product_costs',{p_business_id:this.businessId}); if(costError) throw costError; const byId=new Map((costs||[]).map(c=>[c.product_id,Number(c.purchase_price)||0])); products.forEach(p=>{p.costPrice=byId.get(p.id)??0;p.purchasePrice=p.costPrice;}); }
     Storage.replaceLocal('products', products);
     await this.refreshAssetUrls(products);
   },
@@ -639,7 +757,7 @@ const Cloud = {
     });
     if (error) throw error;
     const { data, error: readError } = await this.client.from('invoices')
-      .select('*, invoice_items(*)').eq('id', id).eq('business_id', this.businessId).single();
+      .select('*, invoice_items(*), invoice_payments(*)').eq('id', id).eq('business_id', this.businessId).single();
     if (readError) throw readError;
     const saved = this.mapInvoice(data);
     Storage.upsertLocal('invoices', saved);

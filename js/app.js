@@ -72,9 +72,11 @@ const App = {
     });
 
     // Initialize Lucide icons
-    if (window.lucide) lucide.createIcons();
+    Icons.renderAll();
 
-    Cloud.initialize().then(authenticated => {
+    const authentication = Cloud.initialize();
+    if (Cloud.client) Cloud.showAuth('Checking your account...');
+    authentication.then(authenticated => {
       Cloud.updateAccountAction();
       if (Cloud.configured && !authenticated) {
         Cloud.showAuth();
@@ -84,7 +86,10 @@ const App = {
         Cloud.showBusinessSetup();
         return;
       }
+      const authScreen = document.getElementById('auth-screen');
+      if (authScreen) authScreen.hidden = true;
       this.startApplication();
+      if (window.Operations) Operations.syncPendingInvoices();
     }).catch(error => {
       console.error('EasyBill cloud startup error:', error);
       Cloud.updateAccountAction();
@@ -93,9 +98,24 @@ const App = {
   },
 
   startApplication() {
-    const hash = window.location.hash.replace('#', '') || 'dashboard';
+    const billing = Cloud.user && Cloud.role === 'cashier';
+    const requestedView = window.location.hash.replace('#', '') || (billing ? 'pos' : 'dashboard');
+    const hash = billing && !['pos', 'customers', 'operations'].includes(requestedView.split(':')[0])
+      ? 'pos'
+      : requestedView;
+    this.applyRoleNavigation();
     this.navigate(hash);
     this.updateStorageStatus();
+  },
+
+  applyRoleNavigation() {
+    const billing = Cloud.user && Cloud.role === 'cashier';
+    const billingViews = ['pos', 'customers', 'operations'];
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.hidden = Boolean(billing && !billingViews.includes(item.dataset.view));
+    });
+    const account = document.getElementById('account-action');
+    if (account && Cloud.user) account.title = `Signed in as ${Cloud.role || 'member'}`;
   },
 
   updateStorageStatus() {
@@ -117,7 +137,7 @@ const App = {
     const overlay = document.getElementById('command-center');
     if (!overlay) return;
     overlay.classList.add('active');
-    if (window.lucide) lucide.createIcons();
+    Icons.renderAll();
   },
 
   closeCommandCenter() {
@@ -131,12 +151,19 @@ const App = {
   },
 
   navigate(view, param = null, updateHash = true) {
-    // Parse view:param from hash if needed (e.g. "new-invoice:abc123")
+    // Parse view:param from hash if needed.
     if (view.includes(':')) {
       const parts = view.split(':');
       view = parts[0];
       param = parts[1];
     }
+
+    if (view === 'new-invoice' || view === 'invoices') {
+      view = 'pos';
+      param = null;
+    }
+
+    if (Cloud.user && Cloud.role === 'cashier' && !['pos', 'customers', 'operations'].includes(view)) { Utils.toast('Billing accounts can access Point of Sale, Customers, and cashier operations only.','error'); view='pos'; param=null; }
 
     if (this.currentView === 'pos' && view !== 'pos' && window.POS) POS.stopScanner();
     this.currentView = view;
@@ -161,8 +188,8 @@ const App = {
 
     // Render view
     switch (view) {
-      case 'dashboard':
-        Dashboard.render();
+      case 'reports':
+        Reports.render();
         break;
       case 'customers':
         Customers.render();
@@ -176,15 +203,14 @@ const App = {
       case 'stocks':
         Stocks.render();
         break;
-      case 'new-invoice':
-        Invoices.currentItems = [];
-        Invoices.render(param || null);
-        break;
-      case 'invoices':
-        InvoiceList.render();
+      case 'barcode-generator':
+        BarcodeGenerator.render();
         break;
       case 'settings':
         Settings.render();
+        break;
+      case 'operations':
+        Operations.render();
         break;
       default:
         Dashboard.render();
@@ -194,14 +220,15 @@ const App = {
 
   updateHeader(view) {
     const titles = {
-      'dashboard': { title: 'Dashboard', subtitle: 'Overview of your business' },
-      'pos': { title: 'Point of Sale', subtitle: 'Scan products and complete a sale' },
-      'customers': { title: 'Customers', subtitle: 'Manage your customer database' },
-      'products': { title: 'Products & Services', subtitle: 'Manage your product catalog' },
+      'dashboard': { title: 'Dashboard', subtitle: 'Overview of your business & insights' },
+      'pos': { title: 'Point of Sale', subtitle: 'Fast checkout & customer mobile billing' },
+      'reports': { title: 'Sales Reports', subtitle: 'Review sales, profit, loss, and expenses by period' },
+      'customers': { title: 'Customers', subtitle: 'Manage customer database by mobile number' },
+      'products': { title: 'Products & Services', subtitle: 'Manage product catalog, prices & cost' },
       'stocks': { title: 'Stocks', subtitle: 'Monitor product quantities and low-stock alerts' },
-      'new-invoice': { title: 'Create Invoice', subtitle: 'Create a new invoice for your customer' },
-      'invoices': { title: 'Invoice History', subtitle: 'View and manage all your invoices' },
-      'settings': { title: 'Settings', subtitle: 'Configure your business profile and preferences' }
+      'barcode-generator': { title: 'Barcode Generator', subtitle: 'Create, save, and print product barcode labels' },
+      'settings': { title: 'Settings', subtitle: 'Configure your business profile and preferences' },
+      'operations': { title: 'Operations & Loyalty', subtitle: 'Suppliers, purchases, returns, shifts, loyalty and data tools' }
     };
 
     const info = titles[view] || titles['dashboard'];
